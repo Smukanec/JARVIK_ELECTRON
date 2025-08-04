@@ -13,12 +13,23 @@ def ask():
     model = choose_model(query)
     full_prompt = context_data.get("context", "") + "\n" + query
 
-    response = subprocess.run(
-        ["ollama", "run", model],
-        input=full_prompt.encode(),
-        capture_output=True
-    )
-    return jsonify({"response": response.stdout.decode()})
+    try:
+        response = subprocess.run(
+            ["ollama", "run", model],
+            input=full_prompt,
+            capture_output=True,
+            check=True,
+            text=True,
+            timeout=60,
+        )
+        return jsonify({"response": response.stdout})
+    except subprocess.CalledProcessError as e:
+        error_msg = e.stderr or str(e)
+        return jsonify({"error": f"Subprocess failed: {error_msg}"}), 500
+    except subprocess.TimeoutExpired:
+        return jsonify({"error": "Subprocess timed out"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(port=8000)
