@@ -1,0 +1,7 @@
+# Node/Electron artifacts
+node_modules/
+dist/
+
+# Python artifacts
+__pycache__/
+.venv/
