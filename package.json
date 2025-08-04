@@ -1,0 +1,31 @@
+{
+  "name": "jarvik-electron",
+  "version": "1.0.0",
+  "description": "Jarvik lokální desktop aplikace",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "tech.jarvik.ai.local",
+    "productName": "Jarvik",
+    "files": [
+      "**/*",
+      "app/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "app/",
+        "to": "app/"
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    }
+  },
+  "devDependencies": {
+    "electron": "^29.1.0",
+    "electron-builder": "^24.14.1"
+  }
+}

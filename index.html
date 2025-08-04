@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Jarvik Lokální</title>
+</head>
+<body>
+  <h1>Jarvik: Lokální asistent</h1>
+  <textarea id="message" rows="4" cols="60" placeholder="Zadej dotaz..."></textarea><br>
+  <button onclick="ask()">Odeslat</button>
+  <pre id="response" style="white-space: pre-wrap; background: #f3f3f3; padding: 1em; margin-top: 1em;"></pre>
+
+  <script>
+    async function ask() {
+      const msg = document.getElementById("message").value;
+      const res = await fetch("http://localhost:8000/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: msg })
+      });
+      const data = await res.json();
+      document.getElementById("response").textContent = data.response;
+    }
+  </script>
+</body>
+</html>
