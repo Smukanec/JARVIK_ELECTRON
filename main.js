@@ -1,5 +1,4 @@
 const { app, BrowserWindow } = require('electron');
-const path = require('path');
 const { spawn } = require('child_process');
 
 let flaskProcess;
@@ -19,8 +18,7 @@ function createWindow () {
 app.whenReady().then(() => {
   // Spustíme Flask server (předpoklad: python a app/main.py existují)
   flaskProcess = spawn('python', ['app/main.py'], {
-    cwd: __dirname,
-    shell: true
+    cwd: __dirname
   });
 
   flaskProcess.stdout.on('data', (data) => {
@@ -29,6 +27,18 @@ app.whenReady().then(() => {
 
   flaskProcess.stderr.on('data', (data) => {
     console.error(`[Flask Error]: ${data}`);
+  });
+
+  flaskProcess.on('error', (err) => {
+    console.error(`[Flask Failed]: ${err}`);
+    app.quit();
+  });
+
+  flaskProcess.on('exit', (code, signal) => {
+    if (code !== 0) {
+      console.error(`[Flask Exited]: code ${code}${signal ? ` signal ${signal}` : ''}`);
+    }
+    app.quit();
   });
 
   createWindow();
