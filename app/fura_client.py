@@ -1,23 +1,14 @@
-import os
 import requests
-from dotenv import load_dotenv
 
 API_URL = "https://fura.jarvik-ai.tech"
-load_dotenv()
-API_KEY = os.getenv("API_KEY")
-USERNAME = os.getenv("USERNAME")
-
-if not API_KEY or not USERNAME:
-    missing = [name for name, value in (("API_KEY", API_KEY), ("USERNAME", USERNAME)) if not value]
-    raise ValueError(f"Missing environment variable(s): {', '.join(missing)}")
 
 
-def get_context(query):
-    headers = {"Authorization": f"Bearer {API_KEY}"}
-    data = {"query": query, "user": USERNAME}
+def get_context(query, api_key, username, api_url: str = API_URL):
+    headers = {"Authorization": f"Bearer {api_key}"}
+    data = {"query": query, "user": username}
     try:
         res = requests.post(
-            f"{API_URL}/get_context",
+            f"{api_url}/get_context",
             json=data,
             headers=headers,
             timeout=10,
