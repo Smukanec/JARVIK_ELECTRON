@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Jarvik UI</title>
+</head>
+<body>
+  <h1>Jarvik Flask UI</h1>
+  <textarea id="query" rows="4" cols="50" placeholder="Ask something..."></textarea>
+  <br />
+  <button onclick="ask()">Ask</button>
+  <pre id="response"></pre>
+  <script>
+    async function ask() {
+      const res = await fetch('/ask', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({message: document.getElementById('query').value})
+      });
+      const data = await res.json();
+      document.getElementById('response').textContent = data.response || data.error;
+    }
+  </script>
+</body>
+</html>

@@ -8,10 +8,7 @@ set EMAIL=jiri.cechura@gmail.com
 set APPROVED=true
 set CREATED_AT=2025-08-04T10:18:45.759182
 
-REM Install dependencies if needed
-call npm install
-
-REM Launch the Electron app
-call npm start
+REM Run the Python server
+python app/main.py
 
 pause
