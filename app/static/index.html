@@ -41,7 +41,12 @@
       const res = await fetch('/ask', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ message, apiUrl, username, apiKey })
+        body: JSON.stringify({
+          message,
+          api_url: apiUrl,
+          username,
+          api_key: apiKey
+        })
       });
       const data = await res.json();
       document.getElementById('response').textContent = data.response || data.error;
