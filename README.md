@@ -15,9 +15,9 @@
 
 3. **Python a knihovny**  
    - Ujistěte se, že máte Python 3 a pip (`python --version`, `pip --version`).  
-   - Nainstalujte Flask a Requests:  
+   - Nainstalujte Flask, Requests a python-dotenv:
      ```bash
-     pip install flask requests
+     pip install flask requests python-dotenv
      ```
 
 4. **Ollama a modely**  
@@ -30,8 +30,8 @@
      ```
 
 5. **API klíče**  
-   - Aplikace potřebuje proměnné prostředí `API_KEY` a `USERNAME` pro službu "fura".  
-   - Na Linux/macOS lze nastavit např.:  
+   - Aplikace potřebuje proměnné prostředí `API_KEY` a `USERNAME` pro službu "fura".
+   - Proměnné lze uložit do souboru `.env` nebo je nastavit ručně, např. na Linux/macOS:
      ```bash
      export API_KEY="váš_token"
      export USERNAME="vaše_uživatelské_jméno"

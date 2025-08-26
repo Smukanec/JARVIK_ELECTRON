@@ -1,7 +1,9 @@
 import os
 import requests
+from dotenv import load_dotenv
 
 API_URL = "https://fura.jarvik-ai.tech"
+load_dotenv()
 API_KEY = os.getenv("API_KEY")
 USERNAME = os.getenv("USERNAME")
 

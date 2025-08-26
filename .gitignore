@@ -5,3 +5,6 @@ dist/
 # Python artifacts
 __pycache__/
 .venv/
+
+# Environment
+.env
