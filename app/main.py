@@ -1,9 +1,15 @@
 from flask import Flask, request, jsonify
 import subprocess
+import threading
+import webbrowser
 from fura_client import get_context
 from model_router import choose_model
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static", static_url_path="")
+
+@app.route("/")
+def index():
+    return app.send_static_file("index.html")
 
 @app.route("/ask", methods=["POST"])
 def ask():
@@ -32,4 +38,5 @@ def ask():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
+    threading.Timer(1.0, lambda: webbrowser.open("http://localhost:8000")).start()
     app.run(port=8000)
