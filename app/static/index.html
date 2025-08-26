@@ -6,16 +6,42 @@
 </head>
 <body>
   <h1>Jarvik Flask UI</h1>
+
+  <input id="apiUrl" type="text" placeholder="API URL" />
+  <br />
+  <input id="username" type="text" placeholder="Username" />
+  <br />
+  <input id="apiKey" type="password" placeholder="API Key" />
+  <br />
   <textarea id="query" rows="4" cols="50" placeholder="Ask something..."></textarea>
   <br />
   <button onclick="ask()">Ask</button>
   <pre id="response"></pre>
   <script>
+    const apiUrlInput = document.getElementById('apiUrl');
+    const usernameInput = document.getElementById('username');
+    const apiKeyInput = document.getElementById('apiKey');
+
+    // Load previously saved values
+    apiUrlInput.value = localStorage.getItem('apiUrl') || '';
+    usernameInput.value = localStorage.getItem('username') || '';
+    apiKeyInput.value = localStorage.getItem('apiKey') || '';
+
     async function ask() {
+      const message = document.getElementById('query').value;
+      const apiUrl = apiUrlInput.value;
+      const username = usernameInput.value;
+      const apiKey = apiKeyInput.value;
+
+      // Persist inputs for future use
+      localStorage.setItem('apiUrl', apiUrl);
+      localStorage.setItem('username', username);
+      localStorage.setItem('apiKey', apiKey);
+
       const res = await fetch('/ask', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({message: document.getElementById('query').value})
+        body: JSON.stringify({ message, apiUrl, username, apiKey })
       });
       const data = await res.json();
       document.getElementById('response').textContent = data.response || data.error;
