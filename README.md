@@ -13,11 +13,11 @@
    ```  
    - Tím se nainstaluje `electron` a `electron-builder` definované v `package.json`.
 
-3. **Python a knihovny**  
-   - Ujistěte se, že máte Python 3 a pip (`python --version`, `pip --version`).  
-   - Nainstalujte Flask, Requests a python-dotenv:
+3. **Python a knihovny**
+   - Ujistěte se, že máte Python 3 a pip (`python --version`, `pip --version`).
+   - Nainstalujte závislosti projektu:
      ```bash
-     pip install flask requests python-dotenv
+     pip install -r requirements.txt
      ```
 
 4. **Ollama a modely**  
@@ -58,6 +58,21 @@
   npm run dist
   ```
   Vygeneruje se balíček podle nastavení `electron-builder`.
+
+## Jarvik.exe na Windows
+
+Chcete‑li spustit backend jako samostatnou aplikaci na Windows:
+
+1. V příkazovém řádku nainstalujte Python závislosti:
+   ```bash
+   pip install -r requirements.txt
+   ```
+2. Vytvořte spustitelný soubor pomocí PyInstalleru:
+   ```bash
+   pyinstaller Jarvik.spec
+   ```
+   V adresáři `dist` se objeví `Jarvik.exe`.
+3. Před spuštěním nezapomeňte nastavit proměnné prostředí `API_KEY` a `USERNAME` a mít nainstalovaný [Ollama](https://ollama.com/) s potřebnými modely.
 
 ## Popis
 
