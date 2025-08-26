@@ -13,9 +13,26 @@ def index():
 
 @app.route("/ask", methods=["POST"])
 def ask():
-    data = request.get_json()
-    query = data["message"]
-    context_data = get_context(query)
+    data = request.get_json() or {}
+
+    query = data.get("message")
+    api_key = data.get("api_key")
+    username = data.get("username")
+    api_url = data.get("api_url")
+
+    if not api_key or not username:
+        return jsonify({"error": "Missing api_key or username"}), 400
+    if not query:
+        return jsonify({"error": "No message provided"}), 400
+
+    if api_url:
+        context_data = get_context(query, api_key, username, api_url)
+    else:
+        context_data = get_context(query, api_key, username)
+
+    if "error" in context_data:
+        return jsonify(context_data), 401
+
     model = choose_model(query)
     full_prompt = context_data.get("context", "") + "\n" + query
 
