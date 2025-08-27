@@ -21,6 +21,8 @@ def fetch_models():
             capture_output=True,
             text=True,
             check=True,
+            encoding="utf-8",
+            errors="replace",
         )
 
         models = []
@@ -134,6 +136,8 @@ def ask():
             capture_output=True,
             check=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=60,
         )
         logger.info("Model %s responded successfully", model)
@@ -222,6 +226,8 @@ def code():
             capture_output=True,
             check=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=60,
         )
         logger.info("Model %s responded successfully", model)
