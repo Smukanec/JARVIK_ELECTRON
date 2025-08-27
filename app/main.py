@@ -76,6 +76,7 @@ def ask():
     username = data.get("username")
     api_url = data.get("api_url")
     requested_model = data.get("model")
+    memory = data.get("memory", "private")
 
     logger.info("Received ask request for model %s", requested_model)
 
@@ -87,9 +88,9 @@ def ask():
         return jsonify({"error": "No message provided"}), 400
 
     if api_url:
-        context_data = get_context(query, api_key, username, api_url)
+        context_data = get_context(query, api_key, username, api_url, memory)
     else:
-        context_data = get_context(query, api_key, username)
+        context_data = get_context(query, api_key, username, memory=memory)
 
     if "error" in context_data:
         logger.error("Context retrieval failed: %s", context_data.get("error"))
@@ -106,7 +107,9 @@ def ask():
         model = choose_model(query)
         if model not in available_models:
             model = available_models[0]
-    full_prompt = context_data.get("context", "") + "\n" + query
+    context_text = context_data.get("context", "")
+    debug_data = context_data.get("debug")
+    full_prompt = context_text + "\n" + query
     logger.info("Using model %s", model)
 
     try:
@@ -119,7 +122,7 @@ def ask():
             timeout=60,
         )
         logger.info("Model %s responded successfully", model)
-        return jsonify({"response": response.stdout})
+        return jsonify({"response": response.stdout, "context": context_text, "debug": debug_data})
     except subprocess.CalledProcessError as e:
         error_msg = e.stderr or str(e)
         logger.error("Subprocess failed: %s", error_msg)
@@ -142,6 +145,7 @@ def code():
     username = data.get("username")
     api_url = data.get("api_url")
     requested_model = data.get("model")
+    memory = data.get("memory", "private")
 
     logger.info("Received code request for model %s", requested_model)
 
@@ -153,9 +157,9 @@ def code():
         return jsonify({"error": "Missing code or instruction"}), 400
 
     if api_url:
-        context_data = get_context(instruction, api_key, username, api_url)
+        context_data = get_context(instruction, api_key, username, api_url, memory)
     else:
-        context_data = get_context(instruction, api_key, username)
+        context_data = get_context(instruction, api_key, username, memory=memory)
 
     if "error" in context_data:
         logger.error("Context retrieval failed: %s", context_data.get("error"))
@@ -173,8 +177,10 @@ def code():
         if model not in available_models:
             model = available_models[0]
 
+    context_text = context_data.get("context", "")
+    debug_data = context_data.get("debug")
     full_prompt = (
-        context_data.get("context", "")
+        context_text
         + "\nInstruction: "
         + instruction
         + "\n\nCode:\n"
@@ -192,7 +198,7 @@ def code():
             timeout=60,
         )
         logger.info("Model %s responded successfully", model)
-        return jsonify({"response": response.stdout})
+        return jsonify({"response": response.stdout, "context": context_text, "debug": debug_data})
     except subprocess.CalledProcessError as e:
         error_msg = e.stderr or str(e)
         logger.error("Subprocess failed: %s", error_msg)

@@ -51,6 +51,22 @@
       cursor: pointer;
     }
 
+    .context-debug {
+      margin-top: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .context-debug textarea {
+      background: #2d333b;
+      border: 1px solid #3d8361;
+      color: #e1e1e1;
+      padding: 0.5rem;
+      width: 100%;
+      border-radius: 4px;
+    }
+
     #chat {
       margin-top: 1rem;
       border: 1px solid #3d8361;
@@ -130,9 +146,18 @@
       <input id="username" type="text" placeholder="Username" />
       <input id="apiKey" type="password" placeholder="API Key" />
       <select id="model"></select>
+      <select id="memory">
+        <option value="private">Private memory</option>
+        <option value="public">Public memory</option>
+      </select>
+      <p id="modelDesc" style="width:100%"></p>
       <button onclick="clearChat()" class="clear-btn">Clear chat</button>
     </div>
     <div id="chat"></div>
+    <div class="context-debug">
+      <textarea id="context" rows="4" placeholder="Context..." readonly></textarea>
+      <textarea id="debug" rows="4" placeholder="Debug info..." readonly></textarea>
+    </div>
     <div class="input-area">
       <textarea id="query" rows="3" placeholder="Ask something..."></textarea>
       <button onclick="ask()">Send</button>
@@ -150,6 +175,10 @@
     const usernameInput = document.getElementById('username');
     const apiKeyInput = document.getElementById('apiKey');
     const modelSelect = document.getElementById('model');
+    const memorySelect = document.getElementById('memory');
+    const modelDesc = document.getElementById('modelDesc');
+    const contextArea = document.getElementById('context');
+    const debugArea = document.getElementById('debug');
     const chatDiv = document.getElementById('chat');
 
     let sessionApiKey = '';
@@ -158,10 +187,23 @@
     apiUrlInput.value = localStorage.getItem('apiUrl') || '';
     usernameInput.value = localStorage.getItem('username') || '';
 
+    const modelDescriptions = {
+      phi3: 'Optimized for programming tasks.',
+      llama3: 'Good for legal queries and contracts.',
+      mistral: 'General-purpose conversational model.'
+    };
+
+    function updateModelDesc() {
+      modelDesc.textContent = modelDescriptions[modelSelect.value] || '';
+    }
+
+    modelSelect.addEventListener('change', updateModelDesc);
+
     async function loadModels() {
       const res = await fetch('/models');
       const models = await res.json();
       modelSelect.innerHTML = models.map(m => `<option value="${m}">${m}</option>`).join('');
+      updateModelDesc();
     }
 
     loadModels();
@@ -184,6 +226,7 @@
       const username = usernameInput.value;
       const apiKey = apiKeyInput.value;
       const model = modelSelect.value;
+      const memory = memorySelect.value;
 
       // Persist inputs for future use
       localStorage.setItem('apiUrl', apiUrl);
@@ -201,7 +244,8 @@
           api_url: apiUrl,
           username,
           api_key: sessionApiKey,
-          model
+          model,
+          memory
         })
       });
 
@@ -219,6 +263,8 @@
       }
 
       appendMessage(data.response || data.error, 'bot');
+      contextArea.value = data.context || '';
+      debugArea.value = data.debug ? JSON.stringify(data.debug, null, 2) : '';
     }
 
     async function processCode() {
@@ -228,6 +274,7 @@
       const username = usernameInput.value;
       const apiKey = apiKeyInput.value;
       const model = modelSelect.value;
+      const memory = memorySelect.value;
 
       localStorage.setItem('apiUrl', apiUrl);
       localStorage.setItem('username', username);
@@ -242,7 +289,8 @@
           api_url: apiUrl,
           username,
           api_key: sessionApiKey,
-          model
+          model,
+          memory
         })
       });
 
@@ -253,6 +301,8 @@
         data = {error: 'Invalid server response'};
       }
       document.getElementById('resultCode').value = data.response || data.error;
+      contextArea.value = data.context || '';
+      debugArea.value = data.debug ? JSON.stringify(data.debug, null, 2) : '';
     }
   </script>
 </body>
