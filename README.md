@@ -77,3 +77,9 @@ Chcete‑li spustit backend jako samostatnou aplikaci na Windows:
 ## Popis
 
 Toto je desktopová aplikace (Electron), která poskytuje rozhraní k lokálnímu asistentovi Jarvik běžícímu na `http://localhost:8000`. Je třeba, aby backend (Flask/Ollama) běžel před spuštěním této aplikace.
+
+### UI funkce
+
+- Zobrazuje vrácený kontext a ladicí informace.
+- Umožňuje volit mezi soukromou a veřejnou pamětí při dotazu.
+- Nabízí popis dostupných modelů pro snadnější orientaci.
