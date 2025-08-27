@@ -24,11 +24,12 @@
     const usernameInput = document.getElementById('username');
     const apiKeyInput = document.getElementById('apiKey');
     const modelSelect = document.getElementById('model');
+    // Holds the API key only for the current session
+    let sessionApiKey = '';
 
-    // Load previously saved values
+    // Load previously saved values (except API key)
     apiUrlInput.value = localStorage.getItem('apiUrl') || '';
     usernameInput.value = localStorage.getItem('username') || '';
-    apiKeyInput.value = localStorage.getItem('apiKey') || '';
 
     async function loadModels() {
       const res = await fetch('/models');
@@ -48,7 +49,7 @@
       // Persist inputs for future use
       localStorage.setItem('apiUrl', apiUrl);
       localStorage.setItem('username', username);
-      localStorage.setItem('apiKey', apiKey);
+      sessionApiKey = apiKey;
 
       const res = await fetch('/ask', {
         method: 'POST',
@@ -57,7 +58,7 @@
           message,
           api_url: apiUrl,
           username,
-          api_key: apiKey,
+          api_key: sessionApiKey,
           model
         })
       });
