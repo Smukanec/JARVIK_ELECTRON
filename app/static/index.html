@@ -94,6 +94,32 @@
     .clear-btn {
       background: #8b2e2e;
     }
+
+    .code-dev {
+      margin-top: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .code-dev textarea {
+      background: #2d333b;
+      border: 1px solid #3d8361;
+      color: #e1e1e1;
+      padding: 0.5rem;
+      width: 100%;
+      border-radius: 4px;
+    }
+
+    .code-dev button {
+      background: #3d8361;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      color: #fff;
+      cursor: pointer;
+      align-self: flex-start;
+    }
   </style>
 </head>
 <body>
@@ -110,6 +136,13 @@
     <div class="input-area">
       <textarea id="query" rows="3" placeholder="Ask something..."></textarea>
       <button onclick="ask()">Send</button>
+    </div>
+    <div class="code-dev">
+      <h2>Code Development</h2>
+      <textarea id="originalCode" rows="10" placeholder="Original code..."></textarea>
+      <textarea id="codeInstruction" rows="3" placeholder="Request..."></textarea>
+      <button onclick="processCode()">Process</button>
+      <textarea id="resultCode" rows="10" placeholder="Resulting code..." readonly></textarea>
     </div>
   </div>
   <script>
@@ -186,6 +219,40 @@
       }
 
       appendMessage(data.response || data.error, 'bot');
+    }
+
+    async function processCode() {
+      const code = document.getElementById('originalCode').value;
+      const instruction = document.getElementById('codeInstruction').value;
+      const apiUrl = apiUrlInput.value;
+      const username = usernameInput.value;
+      const apiKey = apiKeyInput.value;
+      const model = modelSelect.value;
+
+      localStorage.setItem('apiUrl', apiUrl);
+      localStorage.setItem('username', username);
+      sessionApiKey = apiKey;
+
+      const res = await fetch('/code', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          code,
+          instruction,
+          api_url: apiUrl,
+          username,
+          api_key: sessionApiKey,
+          model
+        })
+      });
+
+      let data;
+      try {
+        data = await res.json();
+      } catch (err) {
+        data = {error: 'Invalid server response'};
+      }
+      document.getElementById('resultCode').value = data.response || data.error;
     }
   </script>
 </body>

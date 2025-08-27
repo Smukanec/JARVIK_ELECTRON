@@ -131,6 +131,79 @@ def ask():
         logger.error("Ollama executable not found: %s", e)
         return jsonify({"error": "Ollama executable not found"}), 500
 
+
+@app.route("/code", methods=["POST"])
+def code():
+    data = request.get_json() or {}
+
+    source_code = data.get("code")
+    instruction = data.get("instruction")
+    api_key = data.get("api_key")
+    username = data.get("username")
+    api_url = data.get("api_url")
+    requested_model = data.get("model")
+
+    logger.info("Received code request for model %s", requested_model)
+
+    if not api_key or not username:
+        logger.error("Missing API key or username")
+        return jsonify({"error": "Missing api_key or username"}), 400
+    if not source_code or not instruction:
+        logger.error("Missing code or instruction")
+        return jsonify({"error": "Missing code or instruction"}), 400
+
+    if api_url:
+        context_data = get_context(instruction, api_key, username, api_url)
+    else:
+        context_data = get_context(instruction, api_key, username)
+
+    if "error" in context_data:
+        logger.error("Context retrieval failed: %s", context_data.get("error"))
+        return jsonify(context_data), 401
+
+    available_models = fetch_models()
+    if not available_models:
+        logger.error("No models available")
+        return jsonify({"error": "No models available"}), 503
+
+    if requested_model and requested_model in available_models:
+        model = requested_model
+    else:
+        model = choose_model(instruction)
+        if model not in available_models:
+            model = available_models[0]
+
+    full_prompt = (
+        context_data.get("context", "")
+        + "\nInstruction: "
+        + instruction
+        + "\n\nCode:\n"
+        + source_code
+    )
+    logger.info("Using model %s for code endpoint", model)
+
+    try:
+        response = subprocess.run(
+            ["ollama", "run", model],
+            input=full_prompt,
+            capture_output=True,
+            check=True,
+            text=True,
+            timeout=60,
+        )
+        logger.info("Model %s responded successfully", model)
+        return jsonify({"response": response.stdout})
+    except subprocess.CalledProcessError as e:
+        error_msg = e.stderr or str(e)
+        logger.error("Subprocess failed: %s", error_msg)
+        return jsonify({"error": f"Subprocess failed: {error_msg}"}), 500
+    except subprocess.TimeoutExpired as e:
+        logger.error("Subprocess timed out: %s", e)
+        return jsonify({"error": "Subprocess timed out"}), 500
+    except FileNotFoundError as e:
+        logger.error("Ollama executable not found: %s", e)
+        return jsonify({"error": "Ollama executable not found"}), 500
+
 if __name__ == "__main__":
     threading.Timer(1.0, lambda: webbrowser.open("http://localhost:8000")).start()
     app.run(port=8000)
