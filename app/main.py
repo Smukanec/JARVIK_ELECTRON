@@ -11,6 +11,25 @@ app = Flask(__name__, static_folder="static", static_url_path="")
 def index():
     return app.send_static_file("index.html")
 
+
+@app.route("/models")
+def models():
+    try:
+        result = subprocess.run(
+            ["ollama", "list"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        lines = result.stdout.strip().splitlines()
+        models = [line.split()[0] for line in lines[1:]] if lines else []
+        return jsonify({"models": models})
+    except subprocess.CalledProcessError as e:
+        error_msg = e.stderr or str(e)
+        return jsonify({"models": [], "error": f"Subprocess failed: {error_msg}"}), 500
+    except Exception as e:
+        return jsonify({"models": [], "error": str(e)}), 500
+
 @app.route("/ask", methods=["POST"])
 def ask():
     data = request.get_json() or {}
@@ -33,7 +52,7 @@ def ask():
     if "error" in context_data:
         return jsonify(context_data), 401
 
-    model = choose_model(query)
+    model = data.get("model") or choose_model(query)
     full_prompt = context_data.get("context", "") + "\n" + query
 
     try:

@@ -13,6 +13,8 @@
   <br />
   <input id="apiKey" type="password" placeholder="API Key" />
   <br />
+  <select id="modelSelector"></select>
+  <br />
   <textarea id="query" rows="4" cols="50" placeholder="Ask something..."></textarea>
   <br />
   <button onclick="ask()">Ask</button>
@@ -21,17 +23,40 @@
     const apiUrlInput = document.getElementById('apiUrl');
     const usernameInput = document.getElementById('username');
     const apiKeyInput = document.getElementById('apiKey');
+    const modelSelector = document.getElementById('modelSelector');
 
     // Load previously saved values
     apiUrlInput.value = localStorage.getItem('apiUrl') || '';
     usernameInput.value = localStorage.getItem('username') || '';
     apiKeyInput.value = localStorage.getItem('apiKey') || '';
 
+    async function loadModels() {
+      try {
+        const res = await fetch('/models');
+        const data = await res.json();
+        if (!data.models || data.models.length === 0) {
+          modelSelector.innerHTML = '<option value="">No models available</option>';
+          document.getElementById('response').textContent = 'No models available';
+          return;
+        }
+        data.models.forEach((m) => {
+          const opt = document.createElement('option');
+          opt.value = m;
+          opt.textContent = m;
+          modelSelector.appendChild(opt);
+        });
+      } catch (err) {
+        modelSelector.innerHTML = '<option value="">Error loading models</option>';
+        document.getElementById('response').textContent = 'Error loading models';
+      }
+    }
+
     async function ask() {
       const message = document.getElementById('query').value;
       const apiUrl = apiUrlInput.value;
       const username = usernameInput.value;
       const apiKey = apiKeyInput.value;
+      const model = modelSelector.value;
 
       // Persist inputs for future use
       localStorage.setItem('apiUrl', apiUrl);
@@ -45,12 +70,15 @@
           message,
           api_url: apiUrl,
           username,
-          api_key: apiKey
+          api_key: apiKey,
+          model
         })
       });
       const data = await res.json();
       document.getElementById('response').textContent = data.response || data.error;
     }
+
+    window.addEventListener('DOMContentLoaded', loadModels);
   </script>
 </body>
 </html>
