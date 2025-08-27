@@ -17,8 +17,17 @@ def fetch_models():
             text=True,
             check=True,
         )
-        data = json.loads(result.stdout)
-        return [m.get("name") for m in data.get("models", [])]
+
+        models = []
+        for line in result.stdout.splitlines():
+            try:
+                obj = json.loads(line)
+                name = obj.get("name")
+                if name:
+                    models.append(name)
+            except json.JSONDecodeError:
+                continue
+        return models
     except Exception:
         try:
             resp = requests.get("http://localhost:11434/api/tags", timeout=5)
