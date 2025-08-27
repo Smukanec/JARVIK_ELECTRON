@@ -51,8 +51,23 @@
       cursor: pointer;
     }
 
-    .context-debug {
+    .qa-area {
       margin-top: 1rem;
+      display: flex;
+      gap: 1rem;
+    }
+
+    #chat {
+      border: 1px solid #3d8361;
+      padding: 1rem;
+      height: 300px;
+      overflow-y: auto;
+      background: #1e242b;
+      flex: 1;
+    }
+
+    .context-debug {
+      width: 250px;
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
@@ -65,15 +80,7 @@
       padding: 0.5rem;
       width: 100%;
       border-radius: 4px;
-    }
-
-    #chat {
-      margin-top: 1rem;
-      border: 1px solid #3d8361;
-      padding: 1rem;
-      height: 300px;
-      overflow-y: auto;
-      background: #1e242b;
+      height: 100px;
     }
 
     .message {
@@ -155,17 +162,21 @@
       <p id="modelDesc" style="width:100%"></p>
       <button onclick="clearChat()" class="clear-btn">Clear chat</button>
     </div>
-    <div id="chat"></div>
-    <div class="context-debug">
-      <textarea id="context" rows="4" placeholder="Context..." readonly></textarea>
-      <textarea id="debug" rows="4" placeholder="Debug info..." readonly></textarea>
-    </div>
     <div class="input-area">
       <textarea id="query" rows="3" placeholder="Ask something..."></textarea>
       <button onclick="ask()">Send</button>
     </div>
-    <div class="code-dev">
+    <div class="qa-area">
+      <div id="chat"></div>
+      <div class="context-debug">
+        <textarea id="context" placeholder="Context..." readonly></textarea>
+        <textarea id="debug" placeholder="Debug info..." readonly></textarea>
+      </div>
+    </div>
+    <button id="toggleDev" onclick="toggleDevUI()">Toggle Development UI</button>
+    <div class="code-dev" id="devUI" style="display:none;">
       <h2>Code Development</h2>
+      <input type="file" id="codeFiles" multiple />
       <textarea id="originalCode" rows="10" placeholder="Original code..."></textarea>
       <textarea id="codeInstruction" rows="3" placeholder="Request..."></textarea>
       <button onclick="processCode()">Process</button>
@@ -184,6 +195,7 @@
     const chatDiv = document.getElementById('chat');
     const loginBtn = document.getElementById('loginBtn');
     const logoutBtn = document.getElementById('logoutBtn');
+    const codeFilesInput = document.getElementById('codeFiles');
 
     let sessionApiKey = localStorage.getItem('apiKey') || '';
 
@@ -319,12 +331,18 @@
       const model = modelSelect.value;
       const memory = memorySelect.value;
 
+      const files = {};
+      for (const file of codeFilesInput.files) {
+        files[file.name] = await file.text();
+      }
+
       const res = await fetch('/code', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
           code,
           instruction,
+          files,
           api_url: apiUrl,
           username,
           api_key: apiKey,
@@ -342,6 +360,11 @@
       document.getElementById('resultCode').value = data.response || data.error;
       contextArea.value = data.context || '';
       debugArea.value = data.debug ? JSON.stringify(data.debug, null, 2) : '';
+    }
+
+    function toggleDevUI() {
+      const dev = document.getElementById('devUI');
+      dev.style.display = dev.style.display === 'none' ? '' : 'none';
     }
   </script>
 </body>

@@ -141,6 +141,7 @@ def code():
 
     source_code = data.get("code")
     instruction = data.get("instruction")
+    files = data.get("files") or {}
     api_key = data.get("api_key")
     username = data.get("username")
     api_url = data.get("api_url")
@@ -179,12 +180,17 @@ def code():
 
     context_text = context_data.get("context", "")
     debug_data = context_data.get("debug")
+    files_text = ""
+    for name, content in files.items():
+        files_text += f"\nFilename: {name}\n{content}\n"
+
     full_prompt = (
         context_text
         + "\nInstruction: "
         + instruction
         + "\n\nCode:\n"
         + source_code
+        + files_text
     )
     logger.info("Using model %s for code endpoint", model)
 
