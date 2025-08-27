@@ -6,5 +6,8 @@ dist/
 __pycache__/
 .venv/
 
+# Cached context
+app/context_cache.json
+
 # Environment
 .env
