@@ -5,6 +5,7 @@ import webbrowser
 import json
 import requests
 import logging
+import unicodedata
 from fura_client import get_context
 
 app = Flask(__name__, static_folder="static", static_url_path="")
@@ -49,11 +50,25 @@ def fetch_models():
             return []
 
 
+def strip_diacritics(obj):
+    if isinstance(obj, str):
+        return (
+            unicodedata.normalize("NFD", obj)
+            .encode("ascii", "ignore")
+            .decode("ascii")
+        )
+    if isinstance(obj, dict):
+        return {k: strip_diacritics(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [strip_diacritics(v) for v in obj]
+    return obj
+
+
 def choose_model(prompt):
-    prompt = (prompt or "").lower()
-    if "program" in prompt or "kód" in prompt:
+    prompt = strip_diacritics(prompt or "").lower()
+    if "program" in prompt or "kod" in prompt:
         return "phi3"
-    elif "právo" in prompt or "smlouva" in prompt:
+    elif "pravo" in prompt or "smlouva" in prompt:
         return "llama3"
     else:
         return "mistral"
@@ -94,7 +109,7 @@ def ask():
 
     if "error" in context_data:
         logger.error("Context retrieval failed: %s", context_data.get("error"))
-        return jsonify(context_data), 401
+        return jsonify(strip_diacritics(context_data)), 401
 
     available_models = fetch_models()
     if not available_models:
@@ -122,7 +137,13 @@ def ask():
             timeout=60,
         )
         logger.info("Model %s responded successfully", model)
-        return jsonify({"response": response.stdout, "context": context_text, "debug": debug_data})
+        return jsonify(
+            {
+                "response": strip_diacritics(response.stdout),
+                "context": strip_diacritics(context_text),
+                "debug": strip_diacritics(debug_data),
+            }
+        )
     except subprocess.CalledProcessError as e:
         error_msg = e.stderr or str(e)
         logger.error("Subprocess failed: %s", error_msg)
@@ -164,7 +185,7 @@ def code():
 
     if "error" in context_data:
         logger.error("Context retrieval failed: %s", context_data.get("error"))
-        return jsonify(context_data), 401
+        return jsonify(strip_diacritics(context_data)), 401
 
     available_models = fetch_models()
     if not available_models:
@@ -204,7 +225,13 @@ def code():
             timeout=60,
         )
         logger.info("Model %s responded successfully", model)
-        return jsonify({"response": response.stdout, "context": context_text, "debug": debug_data})
+        return jsonify(
+            {
+                "response": strip_diacritics(response.stdout),
+                "context": strip_diacritics(context_text),
+                "debug": strip_diacritics(debug_data),
+            }
+        )
     except subprocess.CalledProcessError as e:
         error_msg = e.stderr or str(e)
         logger.error("Subprocess failed: %s", error_msg)
