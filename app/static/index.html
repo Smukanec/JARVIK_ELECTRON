@@ -272,6 +272,19 @@
       chatDiv.innerHTML = '';
     }
 
+    function updateContextDebug(ctx, dbg) {
+      if (ctx) {
+        contextArea.value = typeof ctx === 'object' ? JSON.stringify(ctx, null, 2) : ctx;
+      } else {
+        contextArea.value = '';
+      }
+      if (dbg) {
+        debugArea.value = typeof dbg === 'object' ? JSON.stringify(dbg, null, 2) : dbg;
+      } else {
+        debugArea.value = '';
+      }
+    }
+
     async function ask() {
       if (!sessionApiKey) {
         alert('Please login first');
@@ -286,6 +299,8 @@
 
       appendMessage(message, 'user');
       document.getElementById('query').value = '';
+
+      updateContextDebug('Loading...', 'Loading...');
 
       const res = await fetch('/ask', {
         method: 'POST',
@@ -314,8 +329,7 @@
       }
 
       appendMessage(data.response || data.error, 'bot');
-      contextArea.value = data.context || '';
-      debugArea.value = data.debug ? JSON.stringify(data.debug, null, 2) : '';
+      updateContextDebug(data.context, data.debug);
     }
 
     async function processCode() {
@@ -335,6 +349,8 @@
       for (const file of codeFilesInput.files) {
         files[file.name] = await file.text();
       }
+
+      updateContextDebug('Loading...', 'Loading...');
 
       const res = await fetch('/code', {
         method: 'POST',
@@ -358,8 +374,7 @@
         data = {error: 'Invalid server response'};
       }
       document.getElementById('resultCode').value = data.response || data.error;
-      contextArea.value = data.context || '';
-      debugArea.value = data.debug ? JSON.stringify(data.debug, null, 2) : '';
+      updateContextDebug(data.context, data.debug);
     }
 
     function toggleDevUI() {
