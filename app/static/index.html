@@ -145,6 +145,8 @@
       <input id="apiUrl" type="text" placeholder="API URL" />
       <input id="username" type="text" placeholder="Username" />
       <input id="apiKey" type="password" placeholder="API Key" />
+      <button id="loginBtn" onclick="login()">Login</button>
+      <button id="logoutBtn" onclick="logout()">Logout</button>
       <select id="model"></select>
       <select id="memory">
         <option value="private">Private memory</option>
@@ -180,12 +182,15 @@
     const contextArea = document.getElementById('context');
     const debugArea = document.getElementById('debug');
     const chatDiv = document.getElementById('chat');
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
 
-    let sessionApiKey = '';
+    let sessionApiKey = localStorage.getItem('apiKey') || '';
 
-    // Load previously saved values (except API key)
+    // Load previously saved values
     apiUrlInput.value = localStorage.getItem('apiUrl') || '';
     usernameInput.value = localStorage.getItem('username') || '';
+    updateAuthUI();
 
     const modelDescriptions = {
       phi3: 'Optimized for programming tasks.',
@@ -198,6 +203,41 @@
     }
 
     modelSelect.addEventListener('change', updateModelDesc);
+
+    function updateAuthUI() {
+      const loggedIn = !!sessionApiKey;
+      apiUrlInput.style.display = loggedIn ? 'none' : '';
+      usernameInput.style.display = loggedIn ? 'none' : '';
+      apiKeyInput.style.display = loggedIn ? 'none' : '';
+      loginBtn.style.display = loggedIn ? 'none' : '';
+      logoutBtn.style.display = loggedIn ? '' : 'none';
+    }
+
+    function login() {
+      const apiUrl = apiUrlInput.value;
+      const username = usernameInput.value;
+      const apiKey = apiKeyInput.value;
+      if (!apiKey || !username) {
+        alert('Username and API Key are required');
+        return;
+      }
+      localStorage.setItem('apiUrl', apiUrl);
+      localStorage.setItem('username', username);
+      localStorage.setItem('apiKey', apiKey);
+      sessionApiKey = apiKey;
+      updateAuthUI();
+    }
+
+    function logout() {
+      localStorage.removeItem('apiUrl');
+      localStorage.removeItem('username');
+      localStorage.removeItem('apiKey');
+      sessionApiKey = '';
+      apiUrlInput.value = '';
+      usernameInput.value = '';
+      apiKeyInput.value = '';
+      updateAuthUI();
+    }
 
     async function loadModels() {
       const res = await fetch('/models');
@@ -221,17 +261,16 @@
     }
 
     async function ask() {
+      if (!sessionApiKey) {
+        alert('Please login first');
+        return;
+      }
       const message = document.getElementById('query').value;
       const apiUrl = apiUrlInput.value;
       const username = usernameInput.value;
-      const apiKey = apiKeyInput.value;
+      const apiKey = sessionApiKey;
       const model = modelSelect.value;
       const memory = memorySelect.value;
-
-      // Persist inputs for future use
-      localStorage.setItem('apiUrl', apiUrl);
-      localStorage.setItem('username', username);
-      sessionApiKey = apiKey;
 
       appendMessage(message, 'user');
       document.getElementById('query').value = '';
@@ -243,7 +282,7 @@
           message,
           api_url: apiUrl,
           username,
-          api_key: sessionApiKey,
+          api_key: apiKey,
           model,
           memory
         })
@@ -268,17 +307,17 @@
     }
 
     async function processCode() {
+      if (!sessionApiKey) {
+        alert('Please login first');
+        return;
+      }
       const code = document.getElementById('originalCode').value;
       const instruction = document.getElementById('codeInstruction').value;
       const apiUrl = apiUrlInput.value;
       const username = usernameInput.value;
-      const apiKey = apiKeyInput.value;
+      const apiKey = sessionApiKey;
       const model = modelSelect.value;
       const memory = memorySelect.value;
-
-      localStorage.setItem('apiUrl', apiUrl);
-      localStorage.setItem('username', username);
-      sessionApiKey = apiKey;
 
       const res = await fetch('/code', {
         method: 'POST',
@@ -288,7 +327,7 @@
           instruction,
           api_url: apiUrl,
           username,
-          api_key: sessionApiKey,
+          api_key: apiKey,
           model,
           memory
         })
