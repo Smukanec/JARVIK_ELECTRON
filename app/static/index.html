@@ -62,7 +62,20 @@
           model
         })
       });
-      const data = await res.json();
+
+      if (!res.ok) {
+        document.getElementById('response').textContent = `Error ${res.status}: ${res.statusText}`;
+        return;
+      }
+
+      let data;
+      try {
+        data = await res.json();
+      } catch (err) {
+        document.getElementById('response').textContent = 'Invalid server response';
+        return;
+      }
+
       document.getElementById('response').textContent = data.response || data.error;
     }
   </script>
