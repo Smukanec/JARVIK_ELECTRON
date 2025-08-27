@@ -83,3 +83,24 @@ Toto je desktopová aplikace (Electron), která poskytuje rozhraní k lokálním
 - Zobrazuje vrácený kontext a ladicí informace.
 - Umožňuje volit mezi soukromou a veřejnou pamětí při dotazu.
 - Nabízí popis dostupných modelů pro snadnější orientaci.
+
+## CLI rozhraní (bez prohlížeče)
+
+Aplikaci lze ovládat i z příkazové řádky pomocí skriptu `app/cli.py`.
+Nejprve spusťte backend (`python app/main.py` nebo `npm start` podle instrukcí výše)
+a v jiném terminálu zadejte:
+
+```bash
+python app/cli.py
+```
+
+Základní příkazy v interaktivním režimu:
+
+- `login <api_url> <username> <api_key>` – uloží přihlašovací údaje a načte dostupné modely.
+- `ask <dotaz>` – odešle dotaz na server a vypíše odpověď, kontext i ladicí informace.
+- `code <soubor> <instrukce> [další_soubor ...]` – odešle kód a volitelné dodatečné soubory pro zpracování.
+- `models`, `setmodel <model>` – vypíše nebo nastaví používaný model.
+- `setmemory <private|public>` – volba paměti.
+- `exit` – ukončení rozhraní.
+
+Tímto je možné používat Jarvik bez webového prohlížeče.
