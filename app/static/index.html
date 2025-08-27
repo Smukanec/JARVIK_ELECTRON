@@ -3,28 +3,122 @@
 <head>
   <meta charset="UTF-8" />
   <title>Jarvik UI</title>
+  <style>
+    body {
+      background-color: #1b1f24;
+      color: #e1e1e1;
+      font-family: Arial, sans-serif;
+      margin: 0;
+    }
+
+    h1 {
+      text-align: center;
+      margin-top: 0;
+      padding: 1rem;
+      background-color: #0b0e10;
+      color: #78ffbf;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+
+    .config {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .config input,
+    .config select,
+    .input-area textarea {
+      background: #2d333b;
+      border: 1px solid #3d8361;
+      color: #e1e1e1;
+      padding: 0.5rem;
+      width: 100%;
+      border-radius: 4px;
+    }
+
+    .config button {
+      background: #3d8361;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    #chat {
+      margin-top: 1rem;
+      border: 1px solid #3d8361;
+      padding: 1rem;
+      height: 300px;
+      overflow-y: auto;
+      background: #1e242b;
+    }
+
+    .message {
+      margin-bottom: 1rem;
+    }
+
+    .message.user {
+      color: #78ffbf;
+    }
+
+    .message.bot {
+      color: #f1f1f1;
+    }
+
+    .input-area {
+      margin-top: 1rem;
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .input-area textarea {
+      flex: 1;
+    }
+
+    .input-area button {
+      background: #3d8361;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .clear-btn {
+      background: #8b2e2e;
+    }
+  </style>
 </head>
 <body>
-  <h1>Jarvik Flask UI</h1>
-
-  <input id="apiUrl" type="text" placeholder="API URL" />
-  <br />
-  <input id="username" type="text" placeholder="Username" />
-  <br />
-  <input id="apiKey" type="password" placeholder="API Key" />
-  <br />
-  <select id="model"></select>
-  <br />
-  <textarea id="query" rows="4" cols="50" placeholder="Ask something..."></textarea>
-  <br />
-  <button onclick="ask()">Ask</button>
-  <pre id="response"></pre>
+  <h1>Jarvik - Chat UI</h1>
+  <div class="container">
+    <div class="config">
+      <input id="apiUrl" type="text" placeholder="API URL" />
+      <input id="username" type="text" placeholder="Username" />
+      <input id="apiKey" type="password" placeholder="API Key" />
+      <select id="model"></select>
+      <button onclick="clearChat()" class="clear-btn">Clear chat</button>
+    </div>
+    <div id="chat"></div>
+    <div class="input-area">
+      <textarea id="query" rows="3" placeholder="Ask something..."></textarea>
+      <button onclick="ask()">Send</button>
+    </div>
+  </div>
   <script>
     const apiUrlInput = document.getElementById('apiUrl');
     const usernameInput = document.getElementById('username');
     const apiKeyInput = document.getElementById('apiKey');
     const modelSelect = document.getElementById('model');
-    // Holds the API key only for the current session
+    const chatDiv = document.getElementById('chat');
+
     let sessionApiKey = '';
 
     // Load previously saved values (except API key)
@@ -39,6 +133,18 @@
 
     loadModels();
 
+    function appendMessage(text, cls) {
+      const div = document.createElement('div');
+      div.className = 'message ' + cls;
+      div.textContent = text;
+      chatDiv.appendChild(div);
+      chatDiv.scrollTop = chatDiv.scrollHeight;
+    }
+
+    function clearChat() {
+      chatDiv.innerHTML = '';
+    }
+
     async function ask() {
       const message = document.getElementById('query').value;
       const apiUrl = apiUrlInput.value;
@@ -50,6 +156,9 @@
       localStorage.setItem('apiUrl', apiUrl);
       localStorage.setItem('username', username);
       sessionApiKey = apiKey;
+
+      appendMessage(message, 'user');
+      document.getElementById('query').value = '';
 
       const res = await fetch('/ask', {
         method: 'POST',
@@ -64,7 +173,7 @@
       });
 
       if (!res.ok) {
-        document.getElementById('response').textContent = `Error ${res.status}: ${res.statusText}`;
+        appendMessage(`Error ${res.status}: ${res.statusText}`, 'bot');
         return;
       }
 
@@ -72,12 +181,13 @@
       try {
         data = await res.json();
       } catch (err) {
-        document.getElementById('response').textContent = 'Invalid server response';
+        appendMessage('Invalid server response', 'bot');
         return;
       }
 
-      document.getElementById('response').textContent = data.response || data.error;
+      appendMessage(data.response || data.error, 'bot');
     }
   </script>
 </body>
 </html>
+
