@@ -2,14 +2,50 @@ from flask import Flask, request, jsonify
 import subprocess
 import threading
 import webbrowser
+import json
+import requests
 from fura_client import get_context
-from model_router import choose_model
 
 app = Flask(__name__, static_folder="static", static_url_path="")
+
+
+def fetch_models():
+    try:
+        result = subprocess.run(
+            ["ollama", "list", "--json"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        data = json.loads(result.stdout)
+        return [m.get("name") for m in data.get("models", [])]
+    except Exception:
+        try:
+            resp = requests.get("http://localhost:11434/api/tags", timeout=5)
+            resp.raise_for_status()
+            data = resp.json()
+            return [m.get("name") for m in data.get("models", [])]
+        except Exception:
+            return []
+
+
+def choose_model(prompt):
+    prompt = (prompt or "").lower()
+    if "program" in prompt or "kód" in prompt:
+        return "phi3"
+    elif "právo" in prompt or "smlouva" in prompt:
+        return "llama3"
+    else:
+        return "mistral"
 
 @app.route("/")
 def index():
     return app.send_static_file("index.html")
+
+
+@app.route("/models", methods=["GET"])
+def models():
+    return jsonify(fetch_models())
 
 @app.route("/ask", methods=["POST"])
 def ask():
@@ -19,6 +55,7 @@ def ask():
     api_key = data.get("api_key")
     username = data.get("username")
     api_url = data.get("api_url")
+    requested_model = data.get("model")
 
     if not api_key or not username:
         return jsonify({"error": "Missing api_key or username"}), 400
@@ -33,7 +70,13 @@ def ask():
     if "error" in context_data:
         return jsonify(context_data), 401
 
-    model = choose_model(query)
+    available_models = fetch_models()
+    if requested_model and requested_model in available_models:
+        model = requested_model
+    else:
+        model = choose_model(query)
+        if model not in available_models and available_models:
+            model = available_models[0]
     full_prompt = context_data.get("context", "") + "\n" + query
 
     try:

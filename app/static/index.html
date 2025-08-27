@@ -13,6 +13,8 @@
   <br />
   <input id="apiKey" type="password" placeholder="API Key" />
   <br />
+  <select id="model"></select>
+  <br />
   <textarea id="query" rows="4" cols="50" placeholder="Ask something..."></textarea>
   <br />
   <button onclick="ask()">Ask</button>
@@ -21,17 +23,27 @@
     const apiUrlInput = document.getElementById('apiUrl');
     const usernameInput = document.getElementById('username');
     const apiKeyInput = document.getElementById('apiKey');
+    const modelSelect = document.getElementById('model');
 
     // Load previously saved values
     apiUrlInput.value = localStorage.getItem('apiUrl') || '';
     usernameInput.value = localStorage.getItem('username') || '';
     apiKeyInput.value = localStorage.getItem('apiKey') || '';
 
+    async function loadModels() {
+      const res = await fetch('/models');
+      const models = await res.json();
+      modelSelect.innerHTML = models.map(m => `<option value="${m}">${m}</option>`).join('');
+    }
+
+    loadModels();
+
     async function ask() {
       const message = document.getElementById('query').value;
       const apiUrl = apiUrlInput.value;
       const username = usernameInput.value;
       const apiKey = apiKeyInput.value;
+      const model = modelSelect.value;
 
       // Persist inputs for future use
       localStorage.setItem('apiUrl', apiUrl);
@@ -45,7 +57,8 @@
           message,
           api_url: apiUrl,
           username,
-          api_key: apiKey
+          api_key: apiKey,
+          model
         })
       });
       const data = await res.json();
