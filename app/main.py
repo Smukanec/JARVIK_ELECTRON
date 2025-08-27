@@ -50,18 +50,15 @@ def fetch_models():
             return []
 
 
-def strip_diacritics(obj):
-    if isinstance(obj, str):
-        return (
-            unicodedata.normalize("NFD", obj)
-            .encode("ascii", "ignore")
-            .decode("ascii")
-        )
-    if isinstance(obj, dict):
-        return {k: strip_diacritics(v) for k, v in obj.items()}
-    if isinstance(obj, list):
-        return [strip_diacritics(v) for v in obj]
-    return obj
+def strip_diacritics(text):
+    """Return text without diacritics for internal comparisons."""
+    if not isinstance(text, str):
+        return text
+    return (
+        unicodedata.normalize("NFD", text)
+        .encode("ascii", "ignore")
+        .decode("ascii")
+    )
 
 
 def choose_model(prompt):
@@ -76,6 +73,12 @@ def choose_model(prompt):
 @app.route("/")
 def index():
     return app.send_static_file("index.html")
+
+
+@app.route("/simple")
+def simple():
+    """Serve a minimal UI for troubleshooting encoding issues."""
+    return app.send_static_file("simple.html")
 
 
 @app.route("/models", methods=["GET"])
@@ -109,7 +112,7 @@ def ask():
 
     if "error" in context_data:
         logger.error("Context retrieval failed: %s", context_data.get("error"))
-        return jsonify(strip_diacritics(context_data)), 401
+        return jsonify(context_data), 401
 
     available_models = fetch_models()
     if not available_models:
@@ -139,9 +142,9 @@ def ask():
         logger.info("Model %s responded successfully", model)
         return jsonify(
             {
-                "response": strip_diacritics(response.stdout),
-                "context": strip_diacritics(context_text),
-                "debug": strip_diacritics(debug_data),
+                "response": response.stdout,
+                "context": context_text,
+                "debug": debug_data,
             }
         )
     except subprocess.CalledProcessError as e:
@@ -185,7 +188,7 @@ def code():
 
     if "error" in context_data:
         logger.error("Context retrieval failed: %s", context_data.get("error"))
-        return jsonify(strip_diacritics(context_data)), 401
+        return jsonify(context_data), 401
 
     available_models = fetch_models()
     if not available_models:
@@ -227,9 +230,9 @@ def code():
         logger.info("Model %s responded successfully", model)
         return jsonify(
             {
-                "response": strip_diacritics(response.stdout),
-                "context": strip_diacritics(context_text),
-                "debug": strip_diacritics(debug_data),
+                "response": response.stdout,
+                "context": context_text,
+                "debug": debug_data,
             }
         )
     except subprocess.CalledProcessError as e:
