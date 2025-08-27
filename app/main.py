@@ -80,11 +80,14 @@ def ask():
         return jsonify(context_data), 401
 
     available_models = fetch_models()
+    if not available_models:
+        return jsonify({"error": "No models available"}), 503
+
     if requested_model and requested_model in available_models:
         model = requested_model
     else:
         model = choose_model(query)
-        if model not in available_models and available_models:
+        if model not in available_models:
             model = available_models[0]
     full_prompt = context_data.get("context", "") + "\n" + query
 
