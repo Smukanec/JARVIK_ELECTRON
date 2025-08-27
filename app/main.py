@@ -4,12 +4,16 @@ import threading
 import webbrowser
 import json
 import requests
+import logging
 from fura_client import get_context
 
 app = Flask(__name__, static_folder="static", static_url_path="")
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def fetch_models():
+    logger.info("Attempting to fetch models using 'ollama list'")
     try:
         result = subprocess.run(
             ["ollama", "list", "--json"],
@@ -25,16 +29,23 @@ def fetch_models():
                 name = obj.get("name")
                 if name:
                     models.append(name)
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as e:
+                logger.warning("Failed to decode line as JSON: %s", e)
                 continue
+        logger.info("Models obtained via subprocess: %s", models)
         return models
-    except Exception:
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+        logger.error("Error running 'ollama list': %s", e)
         try:
+            logger.info("Falling back to HTTP API for model list")
             resp = requests.get("http://localhost:11434/api/tags", timeout=5)
             resp.raise_for_status()
             data = resp.json()
-            return [m.get("name") for m in data.get("models", [])]
-        except Exception:
+            models = [m.get("name") for m in data.get("models", [])]
+            logger.info("Models obtained via HTTP API: %s", models)
+            return models
+        except requests.RequestException as e:
+            logger.error("HTTP error while fetching models: %s", e)
             return []
 
 
@@ -66,9 +77,13 @@ def ask():
     api_url = data.get("api_url")
     requested_model = data.get("model")
 
+    logger.info("Received ask request for model %s", requested_model)
+
     if not api_key or not username:
+        logger.error("Missing API key or username")
         return jsonify({"error": "Missing api_key or username"}), 400
     if not query:
+        logger.error("No message provided in request")
         return jsonify({"error": "No message provided"}), 400
 
     if api_url:
@@ -77,10 +92,12 @@ def ask():
         context_data = get_context(query, api_key, username)
 
     if "error" in context_data:
+        logger.error("Context retrieval failed: %s", context_data.get("error"))
         return jsonify(context_data), 401
 
     available_models = fetch_models()
     if not available_models:
+        logger.error("No models available")
         return jsonify({"error": "No models available"}), 503
 
     if requested_model and requested_model in available_models:
@@ -90,6 +107,7 @@ def ask():
         if model not in available_models:
             model = available_models[0]
     full_prompt = context_data.get("context", "") + "\n" + query
+    logger.info("Using model %s", model)
 
     try:
         response = subprocess.run(
@@ -100,14 +118,18 @@ def ask():
             text=True,
             timeout=60,
         )
+        logger.info("Model %s responded successfully", model)
         return jsonify({"response": response.stdout})
     except subprocess.CalledProcessError as e:
         error_msg = e.stderr or str(e)
+        logger.error("Subprocess failed: %s", error_msg)
         return jsonify({"error": f"Subprocess failed: {error_msg}"}), 500
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as e:
+        logger.error("Subprocess timed out: %s", e)
         return jsonify({"error": "Subprocess timed out"}), 500
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except FileNotFoundError as e:
+        logger.error("Ollama executable not found: %s", e)
+        return jsonify({"error": "Ollama executable not found"}), 500
 
 if __name__ == "__main__":
     threading.Timer(1.0, lambda: webbrowser.open("http://localhost:8000")).start()
