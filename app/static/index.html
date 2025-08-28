@@ -114,6 +114,17 @@
       cursor: pointer;
     }
 
+    .extra-controls {
+      margin-top: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .extra-controls input {
+      flex: 1;
+    }
+
     .clear-btn {
       background: #8b2e2e;
     }
@@ -166,6 +177,12 @@
       <textarea id="query" rows="3" placeholder="Ask something..."></textarea>
       <button onclick="ask()">Send</button>
     </div>
+    <div class="extra-controls">
+      <input id="knowledgeQuery" type="text" placeholder="Knowledge search..." />
+      <button onclick="knowledgeSearch()">Search</button>
+      <input id="crawlUrl" type="text" placeholder="URL to crawl..." />
+      <button onclick="crawlUrl()">Crawl</button>
+    </div>
     <div class="qa-area">
       <div id="chat"></div>
       <div class="context-debug">
@@ -196,8 +213,11 @@
     const loginBtn = document.getElementById('loginBtn');
     const logoutBtn = document.getElementById('logoutBtn');
     const codeFilesInput = document.getElementById('codeFiles');
+    const knowledgeInput = document.getElementById('knowledgeQuery');
+    const crawlInput = document.getElementById('crawlUrl');
 
     let sessionApiKey = localStorage.getItem('apiKey') || '';
+    let extraContext = '';
 
     // Load previously saved values
     apiUrlInput.value = localStorage.getItem('apiUrl') || '';
@@ -270,6 +290,8 @@
 
     function clearChat() {
       chatDiv.innerHTML = '';
+      extraContext = '';
+      updateContextDebug('', '');
     }
 
     function updateContextDebug(ctx, dbg) {
@@ -283,6 +305,66 @@
       } else {
         debugArea.value = '';
       }
+    }
+
+    async function knowledgeSearch() {
+      if (!sessionApiKey) {
+        alert('Please login first');
+        return;
+      }
+      const query = knowledgeInput.value;
+      const apiUrl = apiUrlInput.value;
+      const username = usernameInput.value;
+      const apiKey = sessionApiKey;
+      updateContextDebug('Loading...', 'Loading...');
+      const res = await fetch('/knowledge', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ query, api_url: apiUrl, username, api_key: apiKey })
+      });
+      let data;
+      try {
+        data = await res.json();
+      } catch (err) {
+        data = {error: 'Invalid server response'};
+      }
+      if (data.error) {
+        appendMessage(data.error, 'bot');
+        return;
+      }
+      const resultText = data.result || data.context || JSON.stringify(data);
+      extraContext = [extraContext, resultText].filter(Boolean).join('\n');
+      updateContextDebug(extraContext, data.debug);
+    }
+
+    async function crawlUrl() {
+      if (!sessionApiKey) {
+        alert('Please login first');
+        return;
+      }
+      const url = crawlInput.value;
+      const apiUrl = apiUrlInput.value;
+      const username = usernameInput.value;
+      const apiKey = sessionApiKey;
+      updateContextDebug('Loading...', 'Loading...');
+      const res = await fetch('/crawl', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ url, api_url: apiUrl, username, api_key: apiKey })
+      });
+      let data;
+      try {
+        data = await res.json();
+      } catch (err) {
+        data = {error: 'Invalid server response'};
+      }
+      if (data.error) {
+        appendMessage(data.error, 'bot');
+        return;
+      }
+      const resultText = data.result || data.context || JSON.stringify(data);
+      extraContext = [extraContext, resultText].filter(Boolean).join('\n');
+      updateContextDebug(extraContext, data.debug);
     }
 
     async function ask() {
@@ -329,7 +411,8 @@
       }
 
       appendMessage(data.response || data.error, 'bot');
-      updateContextDebug(data.context, data.debug);
+      const combinedContext = [extraContext, data.context].filter(Boolean).join('\n');
+      updateContextDebug(combinedContext, data.debug);
     }
 
     async function processCode() {
@@ -374,7 +457,8 @@
         data = {error: 'Invalid server response'};
       }
       document.getElementById('resultCode').value = data.response || data.error;
-      updateContextDebug(data.context, data.debug);
+      const combinedContext = [extraContext, data.context].filter(Boolean).join('\n');
+      updateContextDebug(combinedContext, data.debug);
     }
 
     function toggleDevUI() {

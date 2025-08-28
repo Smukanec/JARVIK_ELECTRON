@@ -171,6 +171,56 @@ def ask():
         return jsonify({"error": "Ollama executable not found"}), 500
 
 
+@app.route("/knowledge", methods=["POST"])
+def knowledge():
+    data = request.get_json() or {}
+    query = data.get("query")
+    api_url = data.get("api_url")
+    username = data.get("username")
+    api_key = data.get("api_key")
+    if not all([query, api_url, username, api_key]):
+        return jsonify({"error": "Missing required fields"}), 400
+    headers = {"Authorization": f"Bearer {api_key}"}
+    payload = {"query": query, "user": username}
+    try:
+        res = requests.post(
+            f"{api_url}/knowledge/search",
+            json=payload,
+            headers=headers,
+            timeout=10,
+        )
+        res.raise_for_status()
+        return jsonify(res.json())
+    except requests.RequestException as exc:
+        logger.error("Knowledge search failed: %s", exc)
+        return jsonify({"error": "Knowledge search failed", "details": str(exc)}), 500
+
+
+@app.route("/crawl", methods=["POST"])
+def crawl():
+    data = request.get_json() or {}
+    url = data.get("url")
+    api_url = data.get("api_url")
+    username = data.get("username")
+    api_key = data.get("api_key")
+    if not all([url, api_url, username, api_key]):
+        return jsonify({"error": "Missing required fields"}), 400
+    headers = {"Authorization": f"Bearer {api_key}"}
+    payload = {"url": url, "user": username}
+    try:
+        res = requests.post(
+            f"{api_url}/crawl",
+            json=payload,
+            headers=headers,
+            timeout=10,
+        )
+        res.raise_for_status()
+        return jsonify(res.json())
+    except requests.RequestException as exc:
+        logger.error("Crawl failed: %s", exc)
+        return jsonify({"error": "Crawl failed", "details": str(exc)}), 500
+
+
 @app.route("/code", methods=["POST"])
 def code():
     data = request.get_json() or {}
