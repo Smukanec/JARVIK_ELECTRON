@@ -245,7 +245,7 @@
       logoutBtn.style.display = loggedIn ? '' : 'none';
     }
 
-    function login() {
+    async function login() {
       const apiUrl = apiUrlInput.value;
       const username = usernameInput.value;
       const apiKey = apiKeyInput.value;
@@ -253,11 +253,26 @@
         alert('Username and API Key are required');
         return;
       }
-      localStorage.setItem('apiUrl', apiUrl);
-      localStorage.setItem('username', username);
-      localStorage.setItem('apiKey', apiKey);
-      sessionApiKey = apiKey;
-      updateAuthUI();
+      try {
+        const res = await fetch(`${apiUrl}/auth/me`, {
+          headers: { Authorization: `Bearer ${apiKey}` }
+        });
+        if (!res.ok) {
+          alert('Authentication failed');
+          sessionApiKey = '';
+          return;
+        }
+        await res.json();
+        localStorage.setItem('apiUrl', apiUrl);
+        localStorage.setItem('username', username);
+        localStorage.setItem('apiKey', apiKey);
+        sessionApiKey = apiKey;
+        updateAuthUI();
+        alert('Login successful');
+      } catch (err) {
+        alert('Login failed: ' + err.message);
+        sessionApiKey = '';
+      }
     }
 
     function logout() {
