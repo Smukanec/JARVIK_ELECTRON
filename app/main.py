@@ -136,7 +136,18 @@ def ask():
     errors = _validate_fura_fields(message, api_url, username, api_key)
     if errors:
         logger.error("Validation errors: %s", errors)
-        return jsonify({"errors": errors}), 400
+        return (
+            jsonify(
+                {
+                    "errors": errors,
+                    "error_code": 400,
+                    "context_used": False,
+                    "context_items_count": 0,
+                    "memory_mode": "public" if remember else "private",
+                }
+            ),
+            400,
+        )
 
     query = message
     logger.info("Received ask request for model %s", requested_model)
@@ -145,12 +156,31 @@ def ask():
 
     if "error" in context_data:
         logger.error("Context retrieval failed: %s", context_data.get("error"))
+        context_data.update(
+            {
+                "error_code": 401,
+                "context_used": False,
+                "context_items_count": 0,
+                "memory_mode": "public" if remember else "private",
+            }
+        )
         return jsonify(context_data), 401
 
     available_models = fetch_models()
     if not available_models:
         logger.error("No models available")
-        return jsonify({"error": "No models available"}), 503
+        return (
+            jsonify(
+                {
+                    "error": "No models available",
+                    "error_code": 503,
+                    "context_used": False,
+                    "context_items_count": 0,
+                    "memory_mode": "public" if remember else "private",
+                }
+            ),
+            503,
+        )
 
     if requested_model and requested_model in available_models:
         model = requested_model
@@ -160,6 +190,11 @@ def ask():
             model = available_models[0]
     context_text = context_data.get("context", "")
     debug_data = context_data.get("debug")
+    context_used = bool(context_text.strip())
+    if isinstance(debug_data, dict):
+        context_items_count = len(debug_data.get("items", []))
+    else:
+        context_items_count = 0
     full_prompt = context_text + "\n" + query
     logger.info("Using model %s", model)
 
@@ -180,18 +215,55 @@ def ask():
                 "response": response.stdout,
                 "context": context_text,
                 "debug": debug_data,
+                "context_used": context_used,
+                "context_items_count": context_items_count,
+                "memory_mode": "public" if remember else "private",
+                "error_code": 0,
             }
         )
     except subprocess.CalledProcessError as e:
         error_msg = e.stderr or str(e)
         logger.error("Subprocess failed: %s", error_msg)
-        return jsonify({"error": f"Subprocess failed: {error_msg}"}), 500
+        return (
+            jsonify(
+                {
+                    "error": f"Subprocess failed: {error_msg}",
+                    "error_code": 500,
+                    "context_used": context_used,
+                    "context_items_count": context_items_count,
+                    "memory_mode": "public" if remember else "private",
+                }
+            ),
+            500,
+        )
     except subprocess.TimeoutExpired as e:
         logger.error("Subprocess timed out: %s", e)
-        return jsonify({"error": "Subprocess timed out"}), 500
+        return (
+            jsonify(
+                {
+                    "error": "Subprocess timed out",
+                    "error_code": 504,
+                    "context_used": context_used,
+                    "context_items_count": context_items_count,
+                    "memory_mode": "public" if remember else "private",
+                }
+            ),
+            500,
+        )
     except FileNotFoundError as e:
         logger.error("Ollama executable not found: %s", e)
-        return jsonify({"error": "Ollama executable not found"}), 500
+        return (
+            jsonify(
+                {
+                    "error": "Ollama executable not found",
+                    "error_code": 500,
+                    "context_used": context_used,
+                    "context_items_count": context_items_count,
+                    "memory_mode": "public" if remember else "private",
+                }
+            ),
+            500,
+        )
 
 
 @app.route("/knowledge", methods=["POST"])
@@ -261,10 +333,32 @@ def code():
 
     if not api_key or not username:
         logger.error("Missing API key or username")
-        return jsonify({"error": "Missing api_key or username"}), 400
+        return (
+            jsonify(
+                {
+                    "error": "Missing api_key or username",
+                    "error_code": 400,
+                    "context_used": False,
+                    "context_items_count": 0,
+                    "memory_mode": "public" if remember else "private",
+                }
+            ),
+            400,
+        )
     if not source_code or not instruction:
         logger.error("Missing code or instruction")
-        return jsonify({"error": "Missing code or instruction"}), 400
+        return (
+            jsonify(
+                {
+                    "error": "Missing code or instruction",
+                    "error_code": 400,
+                    "context_used": False,
+                    "context_items_count": 0,
+                    "memory_mode": "public" if remember else "private",
+                }
+            ),
+            400,
+        )
 
     if api_url:
         context_data = get_context(instruction, api_key, username, api_url, remember)
@@ -273,12 +367,31 @@ def code():
 
     if "error" in context_data:
         logger.error("Context retrieval failed: %s", context_data.get("error"))
+        context_data.update(
+            {
+                "error_code": 401,
+                "context_used": False,
+                "context_items_count": 0,
+                "memory_mode": "public" if remember else "private",
+            }
+        )
         return jsonify(context_data), 401
 
     available_models = fetch_models()
     if not available_models:
         logger.error("No models available")
-        return jsonify({"error": "No models available"}), 503
+        return (
+            jsonify(
+                {
+                    "error": "No models available",
+                    "error_code": 503,
+                    "context_used": False,
+                    "context_items_count": 0,
+                    "memory_mode": "public" if remember else "private",
+                }
+            ),
+            503,
+        )
 
     if requested_model and requested_model in available_models:
         model = requested_model
@@ -289,6 +402,11 @@ def code():
 
     context_text = context_data.get("context", "")
     debug_data = context_data.get("debug")
+    context_used = bool(context_text.strip())
+    if isinstance(debug_data, dict):
+        context_items_count = len(debug_data.get("items", []))
+    else:
+        context_items_count = 0
     files_text = ""
     for name, content in files.items():
         files_text += f"\nFilename: {name}\n{content}\n"
@@ -320,18 +438,55 @@ def code():
                 "response": response.stdout,
                 "context": context_text,
                 "debug": debug_data,
+                "context_used": context_used,
+                "context_items_count": context_items_count,
+                "memory_mode": "public" if remember else "private",
+                "error_code": 0,
             }
         )
     except subprocess.CalledProcessError as e:
         error_msg = e.stderr or str(e)
         logger.error("Subprocess failed: %s", error_msg)
-        return jsonify({"error": f"Subprocess failed: {error_msg}"}), 500
+        return (
+            jsonify(
+                {
+                    "error": f"Subprocess failed: {error_msg}",
+                    "error_code": 500,
+                    "context_used": context_used,
+                    "context_items_count": context_items_count,
+                    "memory_mode": "public" if remember else "private",
+                }
+            ),
+            500,
+        )
     except subprocess.TimeoutExpired as e:
         logger.error("Subprocess timed out: %s", e)
-        return jsonify({"error": "Subprocess timed out"}), 500
+        return (
+            jsonify(
+                {
+                    "error": "Subprocess timed out",
+                    "error_code": 504,
+                    "context_used": context_used,
+                    "context_items_count": context_items_count,
+                    "memory_mode": "public" if remember else "private",
+                }
+            ),
+            500,
+        )
     except FileNotFoundError as e:
         logger.error("Ollama executable not found: %s", e)
-        return jsonify({"error": "Ollama executable not found"}), 500
+        return (
+            jsonify(
+                {
+                    "error": "Ollama executable not found",
+                    "error_code": 500,
+                    "context_used": context_used,
+                    "context_items_count": context_items_count,
+                    "memory_mode": "public" if remember else "private",
+                }
+            ),
+            500,
+        )
 
 if __name__ == "__main__":
     threading.Timer(1.0, lambda: webbrowser.open("http://localhost:8000")).start()

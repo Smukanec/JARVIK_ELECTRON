@@ -323,17 +323,20 @@
       updateContextDebug('', '');
     }
 
-    function updateContextDebug(ctx, dbg) {
+    function updateContextDebug(ctx, dbg, diag) {
       if (ctx) {
         contextArea.value = typeof ctx === 'object' ? JSON.stringify(ctx, null, 2) : ctx;
       } else {
         contextArea.value = '';
       }
+      let debugObj = {};
       if (dbg) {
-        debugArea.value = typeof dbg === 'object' ? JSON.stringify(dbg, null, 2) : dbg;
-      } else {
-        debugArea.value = '';
+        debugObj = typeof dbg === 'object' ? {...dbg} : {message: dbg};
       }
+      if (diag) {
+        debugObj = {...debugObj, ...diag};
+      }
+      debugArea.value = Object.keys(debugObj).length ? JSON.stringify(debugObj, null, 2) : '';
     }
 
     async function knowledgeSearch() {
@@ -426,22 +429,33 @@
         })
       });
 
-      if (!res.ok) {
-        appendMessage(`Error ${res.status}: ${res.statusText}`, 'bot');
-        return;
-      }
-
       let data;
       try {
         data = await res.json();
       } catch (err) {
-        appendMessage('Invalid server response', 'bot');
+        data = {error: 'Invalid server response', error_code: res.status};
+      }
+
+      if (!res.ok) {
+        appendMessage(data.error || `Error ${res.status}: ${res.statusText}`, 'bot');
+        updateContextDebug('', data.debug, {
+          context_used: data.context_used,
+          context_items_count: data.context_items_count,
+          memory_mode: data.memory_mode,
+          error_code: data.error_code
+        });
         return;
       }
 
       appendMessage(data.response || data.error, 'bot');
       const combinedContext = [extraContext, data.context].filter(Boolean).join('\n');
-      updateContextDebug(combinedContext, data.debug);
+      const diagnostics = {
+        context_used: data.context_used,
+        context_items_count: data.context_items_count,
+        memory_mode: data.memory_mode,
+        error_code: data.error_code
+      };
+      updateContextDebug(combinedContext, data.debug, diagnostics);
     }
 
     async function processCode() {
@@ -483,11 +497,17 @@
       try {
         data = await res.json();
       } catch (err) {
-        data = {error: 'Invalid server response'};
+        data = {error: 'Invalid server response', error_code: res.status};
       }
       document.getElementById('resultCode').value = data.response || data.error;
       const combinedContext = [extraContext, data.context].filter(Boolean).join('\n');
-      updateContextDebug(combinedContext, data.debug);
+      const diagnostics = {
+        context_used: data.context_used,
+        context_items_count: data.context_items_count,
+        memory_mode: data.memory_mode,
+        error_code: data.error_code
+      };
+      updateContextDebug(combinedContext, data.debug, diagnostics);
     }
 
     function toggleDevUI() {
