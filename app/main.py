@@ -87,30 +87,38 @@ def simple():
 def models():
     return jsonify(fetch_models())
 
+def _validate_fura_fields(message, api_url, username, api_key):
+    """Ensure required fields for the Fura request are non-empty strings."""
+    errors = {}
+    if not isinstance(message, str) or not message.strip():
+        errors["message"] = "message must be a non-empty string"
+    if not isinstance(api_url, str) or not api_url.strip():
+        errors["api_url"] = "api_url must be a non-empty string"
+    if not isinstance(username, str) or not username.strip():
+        errors["username"] = "username must be a non-empty string"
+    if not isinstance(api_key, str) or not api_key.strip():
+        errors["api_key"] = "api_key must be a non-empty string"
+    return errors
+
 @app.route("/ask", methods=["POST"])
 def ask():
     data = request.get_json() or {}
-
-    query = data.get("message")
-    api_key = data.get("api_key")
-    username = data.get("username")
+    message = data.get("message")
     api_url = data.get("api_url")
+    username = data.get("username")
+    api_key = data.get("api_key")
     requested_model = data.get("model")
     memory = data.get("memory", "private")
 
+    errors = _validate_fura_fields(message, api_url, username, api_key)
+    if errors:
+        logger.error("Validation errors: %s", errors)
+        return jsonify({"errors": errors}), 400
+
+    query = message
     logger.info("Received ask request for model %s", requested_model)
 
-    if not api_key or not username:
-        logger.error("Missing API key or username")
-        return jsonify({"error": "Missing api_key or username"}), 400
-    if not query:
-        logger.error("No message provided in request")
-        return jsonify({"error": "No message provided"}), 400
-
-    if api_url:
-        context_data = get_context(query, api_key, username, api_url, memory)
-    else:
-        context_data = get_context(query, api_key, username, memory=memory)
+    context_data = get_context(query, api_key, username, api_url, memory)
 
     if "error" in context_data:
         logger.error("Context retrieval failed: %s", context_data.get("error"))
