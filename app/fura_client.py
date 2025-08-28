@@ -27,7 +27,7 @@ def _save_cache(cache):
         pass
 
 
-def get_context(query, api_key, username, api_url: str = API_URL, memory: str = "private"):
+def get_context(query, api_key, username, api_url: str = API_URL, remember: bool = False):
     cache = _load_cache()
     now = time.time()
     cached = cache.get(query)
@@ -37,7 +37,7 @@ def get_context(query, api_key, username, api_url: str = API_URL, memory: str = 
         cached_data = None
 
     headers = {"Authorization": f"Bearer {api_key}"}
-    data = {"query": query, "user": username, "public": memory == "public"}
+    data = {"query": query, "user": username, "remember": remember}
     try:
         res = requests.post(
             f"{api_url}/get_context",

@@ -155,9 +155,9 @@
       <button id="loginBtn" onclick="login()">Login</button>
       <button id="logoutBtn" onclick="logout()">Logout</button>
       <select id="model"></select>
-      <select id="memory">
-        <option value="private">Private memory</option>
-        <option value="public">Public memory</option>
+      <select id="remember">
+        <option value="false">Private memory</option>
+        <option value="true">Public memory</option>
       </select>
       <p id="modelDesc" style="width:100%"></p>
       <button onclick="clearChat()" class="clear-btn">Clear chat</button>
@@ -188,7 +188,7 @@
     const usernameInput = document.getElementById('username');
     const apiKeyInput = document.getElementById('apiKey');
     const modelSelect = document.getElementById('model');
-    const memorySelect = document.getElementById('memory');
+    const rememberSelect = document.getElementById('remember');
     const modelDesc = document.getElementById('modelDesc');
     const contextArea = document.getElementById('context');
     const debugArea = document.getElementById('debug');
@@ -295,7 +295,7 @@
       const username = usernameInput.value;
       const apiKey = sessionApiKey;
       const model = modelSelect.value;
-      const memory = memorySelect.value;
+      const remember = rememberSelect.value === 'true';
 
       appendMessage(message, 'user');
       document.getElementById('query').value = '';
@@ -311,7 +311,7 @@
           username,
           api_key: apiKey,
           model,
-          memory
+          remember
         })
       });
 
@@ -343,7 +343,7 @@
       const username = usernameInput.value;
       const apiKey = sessionApiKey;
       const model = modelSelect.value;
-      const memory = memorySelect.value;
+      const remember = rememberSelect.value === 'true';
 
       const files = {};
       for (const file of codeFilesInput.files) {
@@ -363,7 +363,7 @@
           username,
           api_key: apiKey,
           model,
-          memory
+          remember
         })
       });
 

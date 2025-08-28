@@ -108,7 +108,7 @@ def ask():
     username = data.get("username")
     api_key = data.get("api_key")
     requested_model = data.get("model")
-    memory = data.get("memory", "private")
+    remember = data.get("remember", False)
 
     errors = _validate_fura_fields(message, api_url, username, api_key)
     if errors:
@@ -118,7 +118,7 @@ def ask():
     query = message
     logger.info("Received ask request for model %s", requested_model)
 
-    context_data = get_context(query, api_key, username, api_url, memory)
+    context_data = get_context(query, api_key, username, api_url, remember)
 
     if "error" in context_data:
         logger.error("Context retrieval failed: %s", context_data.get("error"))
@@ -182,7 +182,7 @@ def code():
     username = data.get("username")
     api_url = data.get("api_url")
     requested_model = data.get("model")
-    memory = data.get("memory", "private")
+    remember = data.get("remember", False)
 
     logger.info("Received code request for model %s", requested_model)
 
@@ -194,9 +194,9 @@ def code():
         return jsonify({"error": "Missing code or instruction"}), 400
 
     if api_url:
-        context_data = get_context(instruction, api_key, username, api_url, memory)
+        context_data = get_context(instruction, api_key, username, api_url, remember)
     else:
-        context_data = get_context(instruction, api_key, username, memory=memory)
+        context_data = get_context(instruction, api_key, username, remember=remember)
 
     if "error" in context_data:
         logger.error("Context retrieval failed: %s", context_data.get("error"))
