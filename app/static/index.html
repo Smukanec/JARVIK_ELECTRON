@@ -245,7 +245,7 @@
       logoutBtn.style.display = loggedIn ? '' : 'none';
     }
 
-    function login() {
+    async function login() {
       const apiUrl = apiUrlInput.value;
       const username = usernameInput.value;
       const apiKey = apiKeyInput.value;
@@ -253,11 +253,40 @@
         alert('Username and API Key are required');
         return;
       }
-      localStorage.setItem('apiUrl', apiUrl);
-      localStorage.setItem('username', username);
-      localStorage.setItem('apiKey', apiKey);
-      sessionApiKey = apiKey;
-      updateAuthUI();
+
+      try {
+        const res = await fetch('/auth/me', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ api_url: apiUrl, username, api_key: apiKey })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.error) {
+          alert('Login failed');
+          appendMessage('Login failed', 'bot');
+          sessionApiKey = '';
+          localStorage.removeItem('apiUrl');
+          localStorage.removeItem('username');
+          localStorage.removeItem('apiKey');
+          updateAuthUI();
+          return;
+        }
+        alert('Login successful');
+        appendMessage('Login successful', 'bot');
+        localStorage.setItem('apiUrl', apiUrl);
+        localStorage.setItem('username', username);
+        localStorage.setItem('apiKey', apiKey);
+        sessionApiKey = apiKey;
+        updateAuthUI();
+      } catch (err) {
+        alert('Login failed');
+        appendMessage('Login failed', 'bot');
+        sessionApiKey = '';
+        localStorage.removeItem('apiUrl');
+        localStorage.removeItem('username');
+        localStorage.removeItem('apiKey');
+        updateAuthUI();
+      }
     }
 
     function logout() {

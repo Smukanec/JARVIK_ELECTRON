@@ -87,6 +87,29 @@ def simple():
 def models():
     return jsonify(fetch_models())
 
+
+@app.route("/auth/me", methods=["POST"])
+def auth_me():
+    data = request.get_json() or {}
+    api_url = data.get("api_url")
+    username = data.get("username")
+    api_key = data.get("api_key")
+
+    if not api_url or not username or not api_key:
+        return jsonify({"error": "Missing api_url, username or api_key"}), 400
+
+    headers = {"Authorization": f"Bearer {api_key}"}
+    params = {"user": username}
+
+    try:
+        res = requests.get(f"{api_url}/auth/me", headers=headers, params=params, timeout=10)
+        if res.ok:
+            return jsonify(res.json())
+        return jsonify(res.json()), res.status_code
+    except requests.RequestException as exc:
+        logger.error("Auth check failed: %s", exc)
+        return jsonify({"error": "Auth check failed", "details": str(exc)}), 502
+
 def _validate_fura_fields(message, api_url, username, api_key):
     """Ensure required fields for the Fura request are non-empty strings."""
     errors = {}
