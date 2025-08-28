@@ -111,7 +111,7 @@ class JarvikCLI(cmd.Cmd):
             "username": self.username,
             "api_key": self.api_key,
             "model": self.model or None,
-            "memory": self.memory,
+            "remember": self.memory == "public",
         }
         try:
             res = requests.post(f"{BASE_URL}/ask", json=payload, timeout=120)
@@ -157,7 +157,7 @@ class JarvikCLI(cmd.Cmd):
             "username": self.username,
             "api_key": self.api_key,
             "model": self.model or None,
-            "memory": self.memory,
+            "remember": self.memory == "public",
         }
         try:
             res = requests.post(f"{BASE_URL}/code", json=payload, timeout=120)
