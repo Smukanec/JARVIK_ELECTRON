@@ -428,9 +428,10 @@ def code():
         context_items_count = len(debug_data.get("items", []))
     else:
         context_items_count = 0
-    files_text = ""
+    file_parts = []
     for name, content in files.items():
-        files_text += f"\nFilename: {name}\n{content}\n"
+        file_parts.append(f"Filename: {name}\n{content}")
+    files_text = "\n".join(file_parts)
 
     full_prompt = (
         context_text
@@ -438,7 +439,7 @@ def code():
         + instruction
         + "\n\nCode:\n"
         + source_code
-        + files_text
+        + ("\n" + files_text if files_text else "")
     )
     logger.info("Using model %s for code endpoint", model)
 
