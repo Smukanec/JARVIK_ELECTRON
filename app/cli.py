@@ -135,39 +135,46 @@ class JarvikCLI(cmd.Cmd):
         main_file = parts[0]
         instruction = parts[1]
         extra_files = parts[2:]
-        try:
-            with open(main_file, "r", encoding="utf-8") as f:
-                code = f.read()
-        except OSError as e:
-            print(f"Cannot read {main_file}: {e}")
-            return
-        files_dict = {}
-        for path in extra_files:
-            try:
-                with open(path, "r", encoding="utf-8") as f:
-                    files_dict[os.path.basename(path)] = f.read()
-            except OSError as e:
-                print(f"Cannot read {path}: {e}")
-                return
-        payload = {
-            "code": code,
+        header = {
             "instruction": instruction,
-            "files": files_dict,
             "api_url": self.api_url or None,
             "username": self.username,
             "api_key": self.api_key,
             "model": self.model or None,
             "remember": self.memory == "public",
         }
+
+        def stream_files():
+            yield json.dumps(header).encode("utf-8") + b"\n"
+            paths = [(main_file, os.path.basename(main_file))]
+            paths += [(p, os.path.basename(p)) for p in extra_files]
+            for path, name in paths:
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        for chunk in iter(lambda: f.read(65536), ""):
+                            block = {"file": name, "code": chunk}
+                            yield json.dumps(block).encode("utf-8") + b"\n"
+                except OSError as e:
+                    err_block = {"error": f"Cannot read {path}: {e}"}
+                    yield json.dumps(err_block).encode("utf-8") + b"\n"
+                    return
+
         try:
-            res = requests.post(f"{BASE_URL}/code", json=payload, timeout=120)
+            res = requests.post(
+                f"{BASE_URL}/code",
+                data=stream_files(),
+                headers={"Content-Type": "application/x-ndjson"},
+                timeout=120,
+            )
             data = res.json()
             if res.ok:
                 self._print_response(data)
             else:
                 print("Error:", data.get("error", res.text))
-        except Exception as e:
+        except requests.RequestException as e:
             print("Request failed:", e)
+        except ValueError:
+            print("Invalid JSON response from server")
 
     def do_exit(self, line):
         """Exit the CLI"""
