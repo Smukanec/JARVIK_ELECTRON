@@ -1,6 +1,7 @@
 import os
 import time
 import shelve
+import heapq
 
 import requests
 
@@ -19,8 +20,12 @@ def _prune_cache(cache):
     excess = len(cache) - CACHE_MAX_ITEMS
     if excess <= 0:
         return
-    sorted_items = sorted(cache.items(), key=lambda item: item[1].get("timestamp", 0))
-    for key, _ in sorted_items[:excess]:
+    oldest = heapq.nsmallest(
+        excess,
+        cache.items(),
+        key=lambda item: item[1].get("timestamp", 0),
+    )
+    for key, _ in oldest:
         del cache[key]
 
 
