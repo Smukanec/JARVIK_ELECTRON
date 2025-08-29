@@ -135,37 +135,67 @@ class JarvikCLI(cmd.Cmd):
         main_file = parts[0]
         instruction = parts[1]
         extra_files = parts[2:]
-        try:
-            with open(main_file, "r", encoding="utf-8") as f:
-                code = f.read()
-        except OSError as e:
-            print(f"Cannot read {main_file}: {e}")
-            return
-        files_dict = {}
-        for path in extra_files:
+
+        # verify files are accessible before starting upload
+        for path in [main_file] + extra_files:
             try:
-                with open(path, "r", encoding="utf-8") as f:
-                    files_dict[os.path.basename(path)] = f.read()
+                with open(path, "r", encoding="utf-8"):
+                    pass
             except OSError as e:
                 print(f"Cannot read {path}: {e}")
                 return
-        payload = {
-            "code": code,
-            "instruction": instruction,
-            "files": files_dict,
-            "api_url": self.api_url or None,
-            "username": self.username,
-            "api_key": self.api_key,
-            "model": self.model or None,
-            "remember": self.memory == "public",
-        }
+
+        def stream_payload():
+            yield '{"code":"'
+            try:
+                with open(main_file, "r", encoding="utf-8") as f:
+                    for chunk in iter(lambda: f.read(65536), ''):
+                        yield json.dumps(chunk)[1:-1]
+            except OSError as e:
+                raise RuntimeError(f"Cannot read {main_file}: {e}") from e
+            yield '","instruction":'
+            yield json.dumps(instruction)
+            yield ',"files":{'
+            for idx, path in enumerate(extra_files):
+                if idx:
+                    yield ','
+                name = os.path.basename(path)
+                yield json.dumps(name)
+                yield ':"'
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        for chunk in iter(lambda: f.read(65536), ''):
+                            yield json.dumps(chunk)[1:-1]
+                except OSError as e:
+                    raise RuntimeError(f"Cannot read {path}: {e}") from e
+                yield '"'
+            yield '},"api_url":'
+            yield json.dumps(self.api_url or None)
+            yield ',"username":'
+            yield json.dumps(self.username)
+            yield ',"api_key":'
+            yield json.dumps(self.api_key)
+            yield ',"model":'
+            yield json.dumps(self.model or None)
+            yield ',"remember":'
+            yield json.dumps(self.memory == "public")
+            yield '}'
+
+        headers = {"Content-Type": "application/json"}
         try:
-            res = requests.post(f"{BASE_URL}/code", json=payload, timeout=120)
+            res = requests.post(
+                f"{BASE_URL}/code",
+                data=stream_payload(),
+                headers=headers,
+                timeout=120,
+            )
             data = res.json()
             if res.ok:
                 self._print_response(data)
             else:
                 print("Error:", data.get("error", res.text))
+        except RuntimeError as e:
+            print(e)
         except Exception as e:
             print("Request failed:", e)
 
