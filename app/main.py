@@ -428,12 +428,10 @@ def code():
         context_items_count = len(debug_data.get("items", []))
     else:
         context_items_count = 0
-    file_parts = []
-    for name, content in files.items():
-        file_parts.append(f"Filename: {name}\n{content}")
+    file_parts = [f"Filename: {name}\n{content}" for name, content in files.items()]
     files_text = ""
     if file_parts:
-        files_text = "\n" + "\n".join(file_parts) + "\n"
+        files_text = "\n" + "\n\n".join(file_parts) + "\n"
 
     full_prompt = (
         context_text
