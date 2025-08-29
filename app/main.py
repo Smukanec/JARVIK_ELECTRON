@@ -16,17 +16,17 @@ logger = logging.getLogger(__name__)
 def fetch_models():
     logger.info("Attempting to fetch models using 'ollama list'")
     try:
-        result = subprocess.run(
+        proc = subprocess.Popen(
             ["ollama", "list", "--json"],
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
-            check=True,
             encoding="utf-8",
             errors="replace",
         )
 
         models = []
-        for line in result.stdout.splitlines():
+        for line in proc.stdout:
             try:
                 obj = json.loads(line)
                 name = obj.get("name")
@@ -35,6 +35,13 @@ def fetch_models():
             except json.JSONDecodeError as e:
                 logger.warning("Failed to decode line as JSON: %s", e)
                 continue
+        proc.stdout.close()
+        stderr = proc.stderr.read()
+        returncode = proc.wait()
+        if returncode != 0:
+            raise subprocess.CalledProcessError(
+                returncode, proc.args, stderr=stderr
+            )
         logger.info("Models obtained via subprocess: %s", models)
         return models
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
@@ -199,20 +206,48 @@ def ask():
     logger.info("Using model %s", model)
 
     try:
-        response = subprocess.run(
+        proc = subprocess.Popen(
             ["ollama", "run", model],
-            input=full_prompt,
-            capture_output=True,
-            check=True,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
             encoding="utf-8",
             errors="replace",
-            timeout=60,
         )
+        proc.stdin.write(full_prompt)
+        proc.stdin.close()
+        output_lines = []
+        for line in proc.stdout:
+            output_lines.append(line)
+        proc.stdout.close()
+        stderr = proc.stderr.read()
+        try:
+            returncode = proc.wait(timeout=60)
+        except subprocess.TimeoutExpired as e:
+            proc.kill()
+            logger.error("Subprocess timed out: %s", e)
+            return (
+                jsonify(
+                    {
+                        "error": "Subprocess timed out",
+                        "error_code": 504,
+                        "context_used": context_used,
+                        "context_items_count": context_items_count,
+                        "memory_mode": "public" if remember else "private",
+                    }
+                ),
+                500,
+            )
+        output_text = "".join(output_lines)
+        if returncode != 0:
+            raise subprocess.CalledProcessError(
+                returncode, proc.args, output=output_text, stderr=stderr
+            )
         logger.info("Model %s responded successfully", model)
         return jsonify(
             {
-                "response": response.stdout,
+                "response": output_text,
                 "context": context_text,
                 "debug": debug_data,
                 "context_used": context_used,
@@ -229,20 +264,6 @@ def ask():
                 {
                     "error": f"Subprocess failed: {error_msg}",
                     "error_code": 500,
-                    "context_used": context_used,
-                    "context_items_count": context_items_count,
-                    "memory_mode": "public" if remember else "private",
-                }
-            ),
-            500,
-        )
-    except subprocess.TimeoutExpired as e:
-        logger.error("Subprocess timed out: %s", e)
-        return (
-            jsonify(
-                {
-                    "error": "Subprocess timed out",
-                    "error_code": 504,
                     "context_used": context_used,
                     "context_items_count": context_items_count,
                     "memory_mode": "public" if remember else "private",
@@ -422,20 +443,48 @@ def code():
     logger.info("Using model %s for code endpoint", model)
 
     try:
-        response = subprocess.run(
+        proc = subprocess.Popen(
             ["ollama", "run", model],
-            input=full_prompt,
-            capture_output=True,
-            check=True,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
             encoding="utf-8",
             errors="replace",
-            timeout=60,
         )
+        proc.stdin.write(full_prompt)
+        proc.stdin.close()
+        output_lines = []
+        for line in proc.stdout:
+            output_lines.append(line)
+        proc.stdout.close()
+        stderr = proc.stderr.read()
+        try:
+            returncode = proc.wait(timeout=60)
+        except subprocess.TimeoutExpired as e:
+            proc.kill()
+            logger.error("Subprocess timed out: %s", e)
+            return (
+                jsonify(
+                    {
+                        "error": "Subprocess timed out",
+                        "error_code": 504,
+                        "context_used": context_used,
+                        "context_items_count": context_items_count,
+                        "memory_mode": "public" if remember else "private",
+                    }
+                ),
+                500,
+            )
+        output_text = "".join(output_lines)
+        if returncode != 0:
+            raise subprocess.CalledProcessError(
+                returncode, proc.args, output=output_text, stderr=stderr
+            )
         logger.info("Model %s responded successfully", model)
         return jsonify(
             {
-                "response": response.stdout,
+                "response": output_text,
                 "context": context_text,
                 "debug": debug_data,
                 "context_used": context_used,
@@ -452,20 +501,6 @@ def code():
                 {
                     "error": f"Subprocess failed: {error_msg}",
                     "error_code": 500,
-                    "context_used": context_used,
-                    "context_items_count": context_items_count,
-                    "memory_mode": "public" if remember else "private",
-                }
-            ),
-            500,
-        )
-    except subprocess.TimeoutExpired as e:
-        logger.error("Subprocess timed out: %s", e)
-        return (
-            jsonify(
-                {
-                    "error": "Subprocess timed out",
-                    "error_code": 504,
                     "context_used": context_used,
                     "context_items_count": context_items_count,
                     "memory_mode": "public" if remember else "private",
